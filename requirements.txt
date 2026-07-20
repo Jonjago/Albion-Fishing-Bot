@@ -1,0 +1,6 @@
+mss>=9.0.1
+numpy>=1.24
+opencv-python>=4.8.0
+pyautogui>=0.9.54
+pynput>=1.7.6
+keyboard>=0.13.5
