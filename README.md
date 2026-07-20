@@ -57,6 +57,12 @@ resolution and UI scale — make sure it matches your game.
 
 Press **Start** or **F3**. Press **F3** again to stop.
 
+| Hotkey | Does |
+|--------|------|
+| **F2** | Record the current mouse position as a fishing spot |
+| **F3** | Start / stop the bot |
+| **F4** | Freeze the screen to calibrate the fishing bar |
+
 ### Optional extras — Tab **Extras**
 
 - **Use food** — presses your food hotbar key on an interval.
@@ -77,10 +83,24 @@ Press **Start** or **F3**. Press **F3** again to stop.
 | Fishing spots, food slots | Recorded by you — never guessed. |
 | Windows display scaling | The app declares itself DPI-aware, so a display set to 125% or 150% no longer shifts every coordinate. |
 
-If your Albion UI scale differs from the default, or you play windowed, use
-**Settings -> Calibrate fishing bar** while the minigame is visible and drag a
-box around the bar. That rectangle is stored and used instead of the calculated
-one.
+### Calibrating the fishing bar
+
+If your Albion UI scale differs from the default, or you play windowed, tell the
+bot where the bar really is:
+
+1. Start fishing.
+2. **The moment the reel-in bar appears, press F4.**
+3. The screen freezes on that instant. Drag a box tightly around the bar — take
+   as long as you like, nothing is running.
+
+The minigame only lasts a couple of seconds, which is why the screen is frozen
+rather than live: there is no way to alt-tab and trace a 23-pixel bar in time.
+A red dashed rectangle shows where the bot is currently looking, so you can see
+the mismatch directly.
+
+Calibration is stored as a *position on the screen* plus a *size in 1080p
+reference pixels*, not as raw pixels — so it keeps working if you later change
+resolution.
 
 ---
 
@@ -90,9 +110,14 @@ one.
 Python is not installed, or the *Add to PATH* box was not ticked during
 installation. Reinstall Python and tick it.
 
-**The bot casts but never catches anything**
-The fishing bar is not where the bot looks. Start fishing manually, and while
-the minigame is on screen use **Settings -> Calibrate fishing bar**.
+**The bot casts and says "Bite!", but never reels anything in**
+The fishing bar is not where the bot looks, so it never finds the bobber. Start
+fishing and press **F4** while the bar is on screen — see *Calibrating the
+fishing bar* above.
+
+For a detailed report, run `.venv\Scripts\python.exe diagnose.py`, go fishing,
+and read what it prints: it saves what the bot sees and scores how well the
+bobber template matches.
 
 **It reacts constantly, or never**
 Adjust **Bite sensitivity** in **Settings**. Lower = more sensitive. Turn on

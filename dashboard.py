@@ -29,7 +29,7 @@ from screen import (
 enable_dpi_awareness()
 
 from bot import FishingBot  # noqa: E402  (import after DPI setup on purpose)
-from region_selector import select_region  # noqa: E402
+from region_selector import grab_screenshot, select_region  # noqa: E402
 
 try:
     import keyboard as global_hotkeys
@@ -48,8 +48,13 @@ Three steps to get fishing:
 
 3.  Tab "Start": press Start (or F3). Press F3 again to stop.
 
-If the bot casts but never reels a fish in, use
-"Settings -> Calibrate fishing bar" while the minigame is on screen."""
+If the bot casts but never reels a fish in, the fishing bar is not
+where it looks. Fix it like this:
+
+    Start fishing, and the moment the reel-in bar appears, press F4.
+    The screen freezes on that instant, and you can draw a box around
+    the bar in your own time. The red dashed rectangle shows where the
+    bot is looking right now."""
 
 
 class Dashboard(ttk.Frame):
@@ -266,7 +271,10 @@ class Dashboard(ttk.Frame):
         ttk.Label(tab, textvariable=self.region_var, wraplength=180).grid(
             row=4, column=1, sticky="w"
         )
-        ttk.Button(tab, text="Calibrate fishing bar", command=self.calibrate).grid(
+        freeze_key = self.settings.get("hotkey_freeze", "f4").upper()
+        ttk.Button(
+            tab, text=f"Calibrate bar ({freeze_key})", command=self.calibrate
+        ).grid(
             row=5, column=0, sticky="ew", pady=(6, 0), padx=(0, 4)
         )
         ttk.Button(tab, text="Reset to automatic", command=self.reset_region).grid(
@@ -353,8 +361,24 @@ class Dashboard(ttk.Frame):
                 self.settings.get("hotkey_toggle", "f3"),
                 lambda: self.messages.put(("toggle", None)),
             )
+            global_hotkeys.add_hotkey(
+                self.settings.get("hotkey_freeze", "f4"), self._on_freeze_hotkey
+            )
         except Exception as error:
             print(f"[hotkeys] Could not register global hotkeys: {error}")
+
+    def _on_freeze_hotkey(self):
+        """Grab the screen immediately, on the hotkey thread.
+
+        Capturing here rather than after the message round-trip means the image
+        is from the instant the key went down, while the bar is still up.
+        """
+        try:
+            screenshot = grab_screenshot(self._current_screen())
+        except Exception as error:
+            self.messages.put(("status", f"Screenshot failed: {error}"))
+            return
+        self.messages.put(("freeze", screenshot))
 
     # ------------------------------------------------------------- actions
 
@@ -380,12 +404,55 @@ class Dashboard(ttk.Frame):
         self._refresh_spots()
 
     def calibrate(self):
+        """Explain the freeze workflow; F4 does the actual capture."""
+        freeze_key = self.settings.get("hotkey_freeze", "f4").upper()
+        if global_hotkeys is None:
+            # No global hotkeys available - fall back to a countdown so the user
+            # still has a way to catch the bar.
+            if messagebox.askokcancel(
+                "Calibrate",
+                "Global hotkeys are unavailable on this system.\n\n"
+                "Press OK, switch to Albion and start fishing. The screen will "
+                "freeze automatically in 8 seconds, and you can draw the box "
+                "on the frozen image.",
+            ):
+                self.after(8000, self.freeze_and_calibrate)
+            return
+
+        messagebox.showinfo(
+            "Calibrate the fishing bar",
+            "The minigame is too short to draw a box while it runs, so we "
+            "freeze the screen instead.\n\n"
+            "1.  Switch to Albion and start fishing.\n"
+            f"2.  The moment the bar appears, press {freeze_key}.\n"
+            "3.  The screen freezes. Now drag a box tightly around the bar, "
+            "with no time pressure.\n\n"
+            "The red dashed rectangle shows where the bot is looking right now.",
+        )
+
+    def freeze_and_calibrate(self, screenshot=None):
+        """Open the selector on a frozen screenshot."""
         try:
             screen = self._current_screen()
         except Exception as error:
             messagebox.showerror("Calibration", str(error))
             return
-        selection = select_region(self.root, screen)
+
+        if screenshot is None:
+            screenshot = grab_screenshot(screen)
+
+        # The bot moves the cursor and casts on its own; leaving it running
+        # would yank the mouse away mid-drag.  The screenshot is already taken,
+        # so stopping now costs nothing.
+        was_running = self.running
+        if was_running:
+            self.stop_bot()
+
+        reference, _ = resolve_minigame_region(self.settings, screen)
+
+        selection = select_region(
+            self.root, screen, background=screenshot, reference=reference
+        )
         if not selection:
             return
 
@@ -411,6 +478,15 @@ class Dashboard(ttk.Frame):
         self.settings["minigame_region"] = screen.region_to_spec(region)
         config.save(self.settings)
         self._refresh_region_label()
+        self.status_var.set(
+            f"Fishing bar calibrated ({region['width']}x{region['height']} px)"
+        )
+        if was_running:
+            messagebox.showinfo(
+                "Calibrated",
+                "Saved. The bot was stopped for the calibration - press Start "
+                "again to continue fishing.",
+            )
 
     def reset_region(self):
         self.settings["minigame_region"] = None
@@ -490,6 +566,8 @@ class Dashboard(ttk.Frame):
                     self.record_spot()
                 elif kind == "toggle":
                     self.toggle()
+                elif kind == "freeze":
+                    self.freeze_and_calibrate(payload)
         except queue.Empty:
             pass
         self.after(100, self._poll_messages)

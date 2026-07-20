@@ -36,6 +36,7 @@ DEFAULTS = {
     "always_on_top": True,
     "hotkey_record": "f2",
     "hotkey_toggle": "f3",
+    "hotkey_freeze": "f4",
     "first_run": True,
 }
 
