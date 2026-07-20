@@ -13,49 +13,131 @@ spot you recorded.
 
 ---
 
-## Setup
+## Installation (Windows)
 
-### Windows (the easy way)
+You do not need to know anything about programming. Follow these steps in order.
 
-1. Install **Python 3.10 or newer** from <https://www.python.org/downloads/>.
-   During the installation, tick **"Add python.exe to PATH"**.
-2. Download this project (green **Code** button -> **Download ZIP**) and unpack it.
-3. Double-click **`start.bat`**.
+### Step 1 — Install Python
 
-That is it. `start.bat` creates its own Python environment, installs everything
-it needs, and starts the bot. The first run takes a minute or two; after that it
-starts immediately.
+1. Open <https://www.python.org/downloads/>.
+2. Click the big yellow **Download Python 3.x.x** button.
+3. Run the file you just downloaded.
+4. **On the first installer screen, tick the box at the bottom that says
+   "Add python.exe to PATH".** This is the single most common reason the bot
+   fails to start. If you miss it, uninstall Python and redo this step.
+5. Click **Install Now** and wait until it says *Setup was successful*.
 
-### Any platform (manual)
+<details>
+<summary>How do I check whether Python is installed correctly?</summary>
+
+Press <kbd>Win</kbd>+<kbd>R</kbd>, type `cmd`, press Enter, then type:
+
+```
+python --version
+```
+
+You should see something like `Python 3.12.4`. If you instead see
+*"python is not recognized"*, PATH was not set — reinstall and tick the box.
+</details>
+
+### Step 2 — Download the bot
+
+1. Go to the project page on GitHub.
+2. Click the green **Code** button → **Download ZIP**.
+3. Right-click the downloaded ZIP → **Extract All…** → **Extract**.
+
+Put the folder somewhere normal like `Desktop` or `Documents`.
+**Do not run it from inside the ZIP file** — Windows will not let it install
+anything, and it will fail.
+
+### Step 3 — Start it
+
+Open the extracted folder and **double-click `start.bat`**.
+
+A black window opens and shows:
+
+```
+ [1/3] Setting up a private Python environment (first run only)...
+ [2/3] Checking required packages...
+ [3/3] Starting the bot...
+```
+
+The first start takes **one to three minutes** because it downloads the
+libraries it needs. Every start after that takes a few seconds.
+Leave the black window open while you use the bot — closing it closes the bot.
+
+> Windows may show a blue *"Windows protected your PC"* box, because the file is
+> not signed. Click **More info → Run anyway**.
+
+That is the whole installation. Nothing is written outside the folder except
+your settings, which go to `%APPDATA%\AlbionFishingBot\config.json`.
+
+### Installing on macOS / Linux, or manually
 
 ```bash
-python -m venv .venv
-.venv/Scripts/activate      # Windows
-# source .venv/bin/activate # macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python dashboard.py
 ```
 
+Note that the bot reads the screen and drives mouse and keyboard, so it needs
+the usual accessibility/screen-recording permissions on macOS, and an X11
+session on Linux.
+
 ---
 
-## Using it
+## How to run it
 
-Three steps:
+Start **Albion Online first**, and get your character standing at the water with
+a fishing rod equipped. The bot records real screen positions, so the game has
+to be visible while you set it up.
 
-**1. Record your fishing spots** — Tab **Spots**
+Then run `start.bat`. A small window appears with five tabs.
 
-Stand at the water in Albion, point the mouse where you want to cast, and press
-**F2**. Repeat for as many spots as you like; the bot cycles through them. They
-are saved, so you only do this once per fishing location.
+### 1. Record your fishing spots — tab **Spots**
 
-**2. Check the screen** — Tab **Settings**
+Move your mouse over the spot in the water where you want to cast, and press
+**F2**. A line appears in the list.
 
-Pick the monitor the game runs on. The **Start** tab shows the detected
-resolution and UI scale — make sure it matches your game.
+Repeat for two to four spots around you — the bot casts at them in turn, which
+looks less mechanical and helps when one spot goes quiet. One spot is enough to
+work, it just always casts at the same place.
 
-**3. Start** — Tab **Start**
+Spots are saved permanently, so you only do this once per fishing location.
 
-Press **Start** or **F3**. Press **F3** again to stop.
+### 2. Check the screen — tab **Settings**, then tab **Start**
+
+In **Settings**, pick the monitor Albion runs on.
+
+Then look at the **Start** tab. It shows a line like:
+
+```
+Screen    1920x1080 (UI-Scale 1.00x)
+```
+
+That must match the resolution Albion is actually running at. If it does not,
+the bot will look in the wrong places.
+
+### 3. Start fishing — tab **Start**
+
+Press **Start**, or **F3** from inside the game. Press **F3** again to stop.
+
+The **Status** line tells you what is happening: `Casting`, `Fishing`, `Bite!`.
+
+### 4. If it casts but never catches — calibrate
+
+If you see `Bite!` in the status but no fish are counted, the bot cannot find
+the bobber, which means it is looking in the wrong place for the bar.
+
+**Start fishing, and the moment the reel-in bar appears, press F4.** The screen
+freezes on that instant. Now drag a box tightly around the bar — take your time,
+nothing is running. A red dashed rectangle shows where the bot was looking, so
+you can see how far off it was.
+
+Press **Start** again afterwards.
+
+### Hotkeys
 
 | Hotkey | Does |
 |--------|------|
