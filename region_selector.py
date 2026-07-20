@@ -8,7 +8,13 @@ ratios.  Whatever the user drags is stored verbatim in the config.
 import tkinter as tk
 
 
-def select_region(parent, screen, hint="Drag a box around the fishing bar - Esc to cancel"):
+DEFAULT_HINT = (
+    "Drag a box tightly around the fishing bar, then let go.   "
+    "Do not include the area around it.   Esc to cancel."
+)
+
+
+def select_region(parent, screen, hint=DEFAULT_HINT):
     """Show a fullscreen overlay and return ``(left, top, width, height)``.
 
     Returns None if the user cancels or drags nothing.

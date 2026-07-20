@@ -27,7 +27,7 @@ class MiniGame:
             raise FileNotFoundError(f"Template image not found: {BOBBER_TEMPLATE}")
 
     def _region(self):
-        return self.region or self.screen.minigame_region()
+        return self.screen.clamp_region(self.region or self.screen.minigame_region())
 
     def play(self, stop_event=None):
         """Hold/release the mouse to keep the bobber centred until it vanishes.

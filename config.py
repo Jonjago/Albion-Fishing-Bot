@@ -15,7 +15,9 @@ DEFAULTS = {
     # --- screen -----------------------------------------------------------
     "monitor": 1,
     "ui_scale": None,          # None = derive from resolution
-    "minigame_region": None,   # None = derive; else [left, top, width, height]
+    # None = derive from the resolution.  Otherwise a resolution-independent
+    # spec: {"cx", "cy"} as screen fractions, {"w_ref", "h_ref"} in 1080p px.
+    "minigame_region": None,
     # --- fishing ----------------------------------------------------------
     "positions": [],           # list of [x, y] spots to cast at
     "sensitivity": 0.6,        # motion threshold that counts as a bite

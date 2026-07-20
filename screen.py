@@ -68,6 +68,25 @@ def list_monitors():
     ]
 
 
+def resolve_minigame_region(settings, screen):
+    """Work out where to look for the fishing bar.
+
+    Returns ``(region, description)``.  A calibration saved by an older version
+    is stored as raw pixels, which cannot be reinterpreted safely on a different
+    resolution -- those are dropped in favour of the automatic region rather
+    than silently pointing off-screen.
+    """
+    stored = settings.get("minigame_region")
+    if isinstance(stored, dict) and "cx" in stored:
+        return screen.region_from_spec(stored), "calibrated"
+    if stored:
+        return (
+            screen.minigame_region(),
+            "automatic (old pixel-based calibration ignored - please recalibrate)",
+        )
+    return screen.minigame_region(), "automatic"
+
+
 class Screen:
     """Geometry of the monitor the game runs on."""
 
@@ -149,6 +168,52 @@ class Screen:
             "width": width,
             "height": height,
         }
+
+    def clamp_region(self, region):
+        """Force a region to lie inside this monitor.
+
+        mss happily accepts a rectangle that hangs off the screen and returns
+        black pixels for the part that does not exist, which silently breaks
+        detection instead of failing loudly.
+        """
+        width = max(4, min(int(region["width"]), self.width))
+        height = max(4, min(int(region["height"]), self.height))
+        left = min(max(int(region["left"]), self.left), self.left + self.width - width)
+        top = min(max(int(region["top"]), self.top), self.top + self.height - height)
+        return {"left": left, "top": top, "width": width, "height": height}
+
+    def region_to_spec(self, region):
+        """Describe an absolute region in resolution-independent terms.
+
+        Storing raw pixels was a mistake: the moment the user changed
+        resolution, the saved rectangle pointed off-screen.  A spec records
+        *where* on the screen the bar sits (as a fraction) and *how big* it is
+        in 1080p reference pixels, so it survives any resolution change.
+        """
+        return {
+            "cx": (region["left"] + region["width"] / 2 - self.left) / self.width,
+            "cy": (region["top"] + region["height"] / 2 - self.top) / self.height,
+            "w_ref": region["width"] / self.ui_scale,
+            "h_ref": region["height"] / self.ui_scale,
+        }
+
+    def region_from_spec(self, spec):
+        """Rebuild an absolute region from a spec on the current screen."""
+        width = max(4, round(spec["w_ref"] * self.ui_scale))
+        height = max(4, round(spec["h_ref"] * self.ui_scale))
+        center_x = self.left + spec["cx"] * self.width
+        center_y = self.top + spec["cy"] * self.height
+        return self.clamp_region(
+            {
+                "left": round(center_x - width / 2),
+                "top": round(center_y - height / 2),
+                "width": width,
+                "height": height,
+            }
+        )
+
+    def expected_minigame_width(self):
+        return round(REF_MINIGAME_WIDTH * self.ui_scale)
 
     def template_scales(self, steps=7, tolerance=0.15):
         """Scale factors to try when matching a 1080p template image.

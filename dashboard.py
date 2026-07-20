@@ -18,7 +18,12 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 import config
-from screen import Screen, enable_dpi_awareness, list_monitors
+from screen import (
+    Screen,
+    enable_dpi_awareness,
+    list_monitors,
+    resolve_minigame_region,
+)
 
 # Must happen before tkinter or any screen capture is set up.
 enable_dpi_awareness()
@@ -309,19 +314,13 @@ class Dashboard(ttk.Frame):
             self.screen_var.set(f"unknown ({error})")
 
     def _refresh_region_label(self):
-        region = self.settings.get("minigame_region")
-        if region:
-            self.region_var.set(
-                f"manual: {region[2]}x{region[3]} at ({region[0]}, {region[1]})"
-            )
-        else:
-            try:
-                auto = self._current_screen().minigame_region()
-                self.region_var.set(
-                    f"automatic: {auto['width']}x{auto['height']}"
-                )
-            except Exception:
-                self.region_var.set("automatic")
+        try:
+            screen = self._current_screen()
+        except Exception:
+            self.region_var.set("unknown")
+            return
+        region, source = resolve_minigame_region(self.settings, screen)
+        self.region_var.set(f"{source}: {region['width']}x{region['height']}")
 
     def _refresh_spots(self):
         self.spot_list.delete(0, tk.END)
@@ -386,11 +385,32 @@ class Dashboard(ttk.Frame):
         except Exception as error:
             messagebox.showerror("Calibration", str(error))
             return
-        region = select_region(self.root, screen)
-        if region:
-            self.settings["minigame_region"] = list(region)
-            config.save(self.settings)
-            self._refresh_region_label()
+        selection = select_region(self.root, screen)
+        if not selection:
+            return
+
+        left, top, width, height = selection
+        region = screen.clamp_region(
+            {"left": left, "top": top, "width": width, "height": height}
+        )
+
+        # A box far wider than the bar breaks the left/right decision, because
+        # the bot steers towards the centre of whatever it was given.
+        expected = screen.expected_minigame_width()
+        if region["width"] > expected * 2.5:
+            if not messagebox.askyesno(
+                "Box looks too wide",
+                f"You drew a box {region['width']} px wide, but the fishing bar "
+                f"is normally about {expected} px on this screen.\n\n"
+                "The bot steers the bobber towards the middle of this box, so a "
+                "box much wider than the bar will make it pull the wrong way.\n\n"
+                "Keep it anyway?",
+            ):
+                return
+
+        self.settings["minigame_region"] = screen.region_to_spec(region)
+        config.save(self.settings)
+        self._refresh_region_label()
 
     def reset_region(self):
         self.settings["minigame_region"] = None

@@ -25,7 +25,7 @@ from pynput.mouse import Controller as MouseController
 from actions import Items, Rod
 from minigame import MiniGame
 from positions import PositionCycler
-from screen import Screen
+from screen import Screen, resolve_minigame_region
 
 # Capture box around the bobber, in 1080p reference pixels.
 DETECTION_BOX = 125
@@ -75,16 +75,8 @@ class FishingBot:
         mouse = MouseController()
         keyboard = KeyboardController()
 
-        region_override = settings.get("minigame_region")
-        minigame_region = None
-        if region_override and len(region_override) == 4:
-            left, top, width, height = region_override
-            minigame_region = {
-                "left": int(left),
-                "top": int(top),
-                "width": int(width),
-                "height": int(height),
-            }
+        minigame_region, region_source = resolve_minigame_region(settings, screen)
+        self._status(f"Fishing bar: {region_source}")
 
         rod = Rod(mouse)
         minigame = MiniGame(mouse, screen, debug=debug, region=minigame_region)
